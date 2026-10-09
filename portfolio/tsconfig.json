@@ -30,6 +30,7 @@
     "src/**/*.d.ts",
     "src/**/*.vue",
     "server/**/*.ts",
+    "api/**/*.ts",
     "vite.config.ts"
   ],
   "exclude": ["node_modules", "dist"]

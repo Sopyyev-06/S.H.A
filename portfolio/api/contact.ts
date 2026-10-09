@@ -1,144 +1,82 @@
-import type { VercelRequest, VercelResponse } from '@vercel/node'
-
-interface ContactBody {
-  name?: string
-  email?: string
-  message?: string
-}
+import { randomUUID } from 'crypto'
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[a-zA-Z]{2,}$/
 
-export default async function handler(req: VercelRequest, res: VercelResponse) {
-  // Set CORS headers
-  res.setHeader('Access-Control-Allow-Credentials', 'true')
-  res.setHeader('Access-Control-Allow-Origin', '*')
-  res.setHeader('Access-Control-Allow-Methods', 'GET,OPTIONS,PATCH,DELETE,POST,PUT')
-  res.setHeader(
-    'Access-Control-Allow-Headers',
-    'X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version'
-  )
+function validate(body: Record<string, unknown>) {
+  const errors: Record<string, string> = {}
+  const name = String(body.name ?? '').trim()
+  const email = String(body.email ?? '').trim()
+  const message = String(body.message ?? '').trim()
 
-  if (req.method === 'OPTIONS') {
-    return res.status(200).end()
+  if (!name) errors.name = 'Adyňyzy giriziň.'
+  else if (name.length < 2) errors.name = 'At azyndan 2 harp bolmaly.'
+  else if (name.length > 80) errors.name = 'At 80 harpdan köp bolmaly däl.'
+
+  if (!email) errors.email = 'E-poçta salgyňyzy giriziň.'
+  else if (!EMAIL_RE.test(email)) errors.email = 'Dogry e-poçta salgysyny giriziň.'
+
+  if (!message) errors.message = 'Habar ýazyň.'
+  else if (message.length < 10) errors.message = 'Habar azyndan 10 harp bolmaly.'
+  else if (message.length > 2000) errors.message = 'Habar 2000 harpdan köp bolmaly däl.'
+
+  return { ok: Object.keys(errors).length === 0, errors, name, email, message }
+}
+
+const hits = new Map<string, number[]>()
+
+function checkRate(ip: string): boolean {
+  const windowMs = 600_000
+  const max = 5
+  const now = Date.now()
+  const timestamps = (hits.get(ip) ?? []).filter((t) => now - t < windowMs)
+  if (timestamps.length >= max) return false
+  timestamps.push(now)
+  hits.set(ip, timestamps)
+  return true
+}
+
+export default async function handler(
+  req: { method?: string; headers: Record<string, string | string[] | undefined>; body?: unknown },
+  res: { writeHead: (status: number, headers: Record<string, string>) => void; end: (body: string) => void },
+) {
+  const send = (status: number, data: unknown) => {
+    const body = JSON.stringify(data)
+    res.writeHead(status, {
+      'Content-Type': 'application/json',
+      'X-Content-Type-Options': 'nosniff',
+    })
+    res.end(body)
   }
 
   if (req.method === 'GET') {
-    return res.status(200).json({
-      success: true,
-      message: 'Portfolio Contact API endpoint is active.',
-    })
+    return send(200, { success: true, message: 'POST { name, email, message } iberiň.' })
   }
 
   if (req.method !== 'POST') {
-    return res.status(405).json({ success: false, message: 'Method Not Allowed' })
+    return send(405, { success: false, message: 'Rugsat berilmeýär.' })
   }
 
-  const { name, email, message } = (req.body || {}) as ContactBody
+  const ip = String(
+    (req.headers['x-forwarded-for'] as string)?.split(',')[0] ?? 'unknown',
+  ).trim()
 
-  const errors: Record<string, string> = {}
-  const trimmedName = (name || '').trim()
-  const trimmedEmail = (email || '').trim()
-  const trimmedMessage = (message || '').trim()
-
-  if (!trimmedName) errors.name = 'Please enter your name.'
-  else if (trimmedName.length < 2) errors.name = 'Name must be at least 2 characters.'
-
-  if (!trimmedEmail) errors.email = 'Please enter your email address.'
-  else if (!EMAIL_RE.test(trimmedEmail)) errors.email = 'Please enter a valid email address.'
-
-  if (!trimmedMessage) errors.message = 'Please enter a message.'
-  else if (trimmedMessage.length < 10) errors.message = 'Message must be at least 10 characters.'
-
-  if (Object.keys(errors).length > 0) {
-    return res.status(422).json({
-      success: false,
-      message: 'Validation failed',
-      errors,
-    })
+  if (!checkRate(ip)) {
+    return send(429, { success: false, message: 'Köp habar iberdiňiz. 10 minutdan soň synanyşyň.' })
   }
 
-  const recipientEmails = ['nepessopyyev@gmail.com', 'nepessopyyev629@gmail.com']
-  const emailSubject = `Täze Habar: ${trimmedName} portfolio arkaly hat iberdi`
-  const emailContent = `
-Ady: ${trimmedName}
-Email: ${trimmedEmail}
-Wagty: ${new Date().toLocaleString()}
+  const body = (req.body ?? {}) as Record<string, unknown>
+  const { ok, errors, name, email } = validate(body)
 
-Habar:
-${trimmedMessage}
-  `.trim()
-
-  let emailSent = false
-
-  // 1. If Resend API Key is provided
-  if (process.env.RESEND_API_KEY) {
-    try {
-      const resendRes = await fetch('https://api.resend.com/emails', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${process.env.RESEND_API_KEY}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          from: process.env.RESEND_FROM_EMAIL || 'onboarding@resend.dev',
-          to: recipientEmails,
-          subject: emailSubject,
-          text: emailContent,
-        }),
-      })
-      if (resendRes.ok) {
-        emailSent = true
-      }
-    } catch (e) {
-      console.error('[Vercel API] Resend email failed:', e)
-    }
+  if (!ok) {
+    return send(422, { success: false, message: 'Meýdanlary barlaň.', errors })
   }
 
-  // 2. If Telegram Bot is configured (Instant alert to phone)
-  if (process.env.TELEGRAM_BOT_TOKEN && process.env.TELEGRAM_CHAT_ID) {
-    try {
-      const tgText = `📬 *Täze Portfolio Habary*\n\n👤 *Ady:* ${trimmedName}\n📧 *Email:* ${trimmedEmail}\n\n💬 *Habar:*\n${trimmedMessage}`
-      await fetch(`https://api.telegram.org/bot${process.env.TELEGRAM_BOT_TOKEN}/sendMessage`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          chat_id: process.env.TELEGRAM_CHAT_ID,
-          text: tgText,
-          parse_mode: 'Markdown',
-        }),
-      })
-      emailSent = true
-    } catch (e) {
-      console.error('[Vercel API] Telegram alert failed:', e)
-    }
-  }
+  const id = randomUUID()
+  console.log('Contact:', { id, name, email, at: new Date().toISOString() })
 
-  // 3. If Webhook / Formspree URL is configured
-  if (process.env.CONTACT_WEBHOOK_URL) {
-    try {
-      await fetch(process.env.CONTACT_WEBHOOK_URL, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          name: trimmedName,
-          email: trimmedEmail,
-          message: trimmedMessage,
-          to: recipientEmails,
-        }),
-      })
-      emailSent = true
-    } catch (e) {
-      console.error('[Vercel API] Webhook notification failed:', e)
-    }
-  }
-
-  return res.status(201).json({
+  return send(201, {
     success: true,
-    message: 'Message received successfully!',
-    emailSent,
-    data: {
-      id: Date.now().toString(),
-      receivedAt: new Date().toISOString(),
-    },
+    message: 'Habar iberildi. Sag boluň — ýakyn wagtda jogap bererin.',
+    data: { id, receivedAt: new Date().toISOString() },
   })
 }
