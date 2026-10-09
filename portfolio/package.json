@@ -1,0 +1,47 @@
+{
+  "name": "nepes-sopyyev-portfolio",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Personal developer portfolio of Nepes Sopyyev - Vue 3 + TypeScript + Vite + Tailwind + Express",
+  "scripts": {
+    "dev": "concurrently -n web,api -c cyan,magenta \"npm:dev:web\" \"npm:dev:api\"",
+    "icons:generate": "node scripts/generate-tech-icons.mjs",
+    "postinstall": "node scripts/generate-tech-icons.mjs || true",
+    "dev:web": "vite",
+    "dev:api": "tsx watch server/index.ts",
+    "build": "vue-tsc --noEmit && vite build",
+    "build:web": "vite build",
+    "typecheck": "vue-tsc --noEmit",
+    "preview": "vite preview",
+    "start": "tsx server/index.ts",
+    "serve": "concurrently -n web,api -c cyan,magenta \"npm:preview\" \"npm:start\""
+  },
+  "dependencies": {
+    "cors": "^2.8.5",
+    "express": "^4.19.2",
+    "lucide-vue-next": "^0.454.0",
+    "simple-icons": "^13.20.0",
+    "vue": "^3.5.12",
+    "vue-i18n": "9.14.5",
+    "vue-router": "^4.4.5"
+  },
+  "devDependencies": {
+    "@types/cors": "^2.8.17",
+    "@types/express": "^4.17.21",
+    "@types/node": "^22.8.6",
+    "@vitejs/plugin-vue": "^5.1.4",
+    "autoprefixer": "^10.4.20",
+    "concurrently": "^9.0.1",
+    "playwright": "^1.49.0",
+    "postcss": "^8.4.47",
+    "tailwindcss": "^3.4.14",
+    "tsx": "^4.19.1",
+    "typescript": "^5.6.3",
+    "vite": "^5.4.10",
+    "vue-tsc": "^2.1.10"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}

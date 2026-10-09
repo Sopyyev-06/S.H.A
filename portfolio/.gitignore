@@ -1,0 +1,16 @@
+node_modules
+dist
+dist-ssr
+.DS_Store
+*.local
+.env
+.env.local
+npm-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+.vscode/*
+!.vscode/extensions.json
+.idea
+
+# Runtime data written by the Express contact API
+server/data/messages.json

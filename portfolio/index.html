@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="tk" class="dark">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <meta name="theme-color" content="#050812" />
+
+    <title>Nepes Sopyyev — Full Stack Developer</title>
+    <meta
+      name="description"
+      content="Portfolio of Nepes Sopyyev, Full Stack Developer from Turkmenistan. I build modern web and mobile applications with Vue, React, TypeScript, Node.js and AI."
+    />
+    <meta name="author" content="Nepes Sopyyev" />
+
+    <!-- Open Graph -->
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="Nepes Sopyyev — Full Stack Developer" />
+    <meta
+      property="og:description"
+      content="Modern web & mobile applications, built with clean code and creative design."
+    />
+    <meta name="twitter:card" content="summary_large_image" />
+
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap"
+      rel="stylesheet"
+    />
+
+    <script>
+      /* Apply stored theme and language before first paint */
+      (function () {
+        try {
+          var stored = localStorage.getItem('ns-theme')
+          var theme = stored === 'light' || stored === 'dark' ? stored : 'dark'
+          var root = document.documentElement
+          root.classList.remove('dark', 'light')
+          root.classList.add(theme)
+          root.style.colorScheme = theme
+
+          var lang = localStorage.getItem('portfolio-locale') || 'tk'
+          root.lang = lang
+        } catch (e) {
+          /* ignore */
+        }
+      })()
+    </script>
+  </head>
+  <body>
+    <div id="app"></div>
+    <noscript>
+      <div style="padding: 2rem; font-family: sans-serif; color: #e2e8f0; background: #050812">
+        This portfolio needs JavaScript enabled to run. Please enable JavaScript and reload the page.
+      </div>
+    </noscript>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>

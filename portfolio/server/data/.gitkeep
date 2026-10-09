@@ -1,0 +1,4 @@
+# Contact submissions are appended here as newline-delimited JSON
+# (one message per line) when no email service is configured.
+#
+# This file is git-ignored — it is created automatically on first submission.
